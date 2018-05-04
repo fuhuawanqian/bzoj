@@ -1,0 +1,126 @@
+Description
+小春现在很清闲,面对书桌上的N张牌,他决定给每张染色,目前小春只有3种颜色:红色,蓝色,绿色.他询问Sun有多少种染色方案,Sun很快就给出了答案.进一步,小春要求染出Sr张红色,Sb张蓝色,Sg张绝色.他又询问有多少种方案,Sun想了一下,又给出了正确答案. 最后小春发明了M种不同的洗牌法,这里他又问Sun有多少种不同的染色方案.两种染色方法相同当且仅当其中一种可以通过任意的洗牌法(即可以使用多种洗牌法,而每种方法可以使用多次)洗成另一种.Sun发现这个问题有点难度,决定交给你,答案可能很大,只要求出答案除以P的余数(P为质数).
+
+Input
+第一行输入 5 个整数：Sr,Sb,Sg,m,p(m<=60,m+1<p<100)。n=Sr+Sb+Sg。接下来 m 行，每行描述
+一种洗牌法，每行有 n 个用空格隔开的整数 X1X2…Xn，恰为 1 到 n 的一个排列，表示使用这种洗牌法，
+第 i位变为原来的 Xi位的牌。输入数据保证任意多次洗牌都可用这 m种洗牌法中的一种代替，且对每种
+洗牌法，都存在一种洗牌法使得能回到原状态。
+
+100%数据满足 Max{Sr,Sb,Sg}<=20。
+
+Output
+不同染法除以P的余数
+
+Sample Input
+1 1 1 2 7
+2 3 1
+3 1 2
+Sample Output
+2
+HINT
+有2 种本质上不同的染色法RGB 和RBG，使用洗牌法231 一次可得GBR 和BGR，使用洗牌法312 一次 可得BRG 和GRB。
+
+基本思路：
+
+非常优越的置换群+exgcd+乘法逆元
+
+Burnside定理：有m个置换k种颜色，所有本质不同的染色方案数就是每种置换的不变元素的个数的平均数。
+所谓不变元素就是一种染色方案经过置换变换后和没变化之前一样。
+所以现在就是需要求出不变元素，同时还要满足各种颜色数量的限制。
+置换的循环在不变元素中一定是一个颜色，
+然后可以求一个三维的01背包的方案数。
+而最后的除法需要利用扩展欧几里得求乘法的逆元。
+
+如果没有颜色限制，可以直接使用polya定理
+
+代码如下：
+#include<cstdio>
+#include<cmath>
+#include<cstring>
+#include<iostream>
+#include<string>
+#include<algorithm>
+#include<queue>
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> pii;
+
+const int inf = 0x3f3f3f3f;
+const int maxn = 70;
+
+int a[maxn][maxn],f[maxn][maxn][maxn],b[maxn];
+bool d[maxn];
+int s1,s2,s3,m,n,mod,ans;
+inline int read(){
+    char ch=getchar();
+    int x=0;
+    while(ch<'0'||ch>'9') ch=getchar();
+    while(ch>='0'&&ch<='9') {x=x*10+ch-'0';ch=getchar();}
+    return x;
+}
+void exgcd(int a,int b,int& x,int& y){
+    if(b==0){
+        x=1;y=0;
+        return;
+    }
+    exgcd(b,a%b,x,y);
+    int t=x;x=y;y=t-a/b*y;
+}
+int dp(int x){
+    for(int i=1;i<=n;i++) b[i]=0;
+    int sum=0,p;
+    for(int i=1;i<=n;i++){
+        if(!b[i]){
+            d[++sum]=1;
+            p=i;
+            b[p]=1;
+            while(!b[a[x][p]]){
+                d[sum]++;
+                p=a[x][p];
+                b[p]=1;
+            }
+        }
+    }
+    for(int i=s1;i>=0;i--){
+        for(int j=s2;j>=0;j--){
+            for(int k=s3;k>=0;k--){
+                f[i][j][k]=0;
+            }
+        }
+    }
+    f[0][0][0]=1;
+    for(int h=1;h<=sum;h++){
+        for(int i=s1;i>=0;i--){
+            for(int j=s2;j>=0;j--){
+                for(int k=s3;k>=0;k--){
+                    if(i>=d[h]) f[i][j][k]=(f[i][j][k]+f[i-d[h]][j][k])%mod;
+                    if(j>=d[h]) f[i][j][k]=(f[i][j][k]+f[i][j-d[h]][k])%mod;
+                    if(k>=d[h]) f[i][j][k]=(f[i][j][k]+f[i][j][k-d[h]])%mod;
+                }
+            }
+        }
+    }
+    return f[s1][s2][s3];
+}
+int main(){
+    s1=read(),s2=read(),s3=read(),m=read(),mod=read();
+    n=s1+s2+s3;
+    for(int i=1;i<=m;i++){
+        for(int j=1;j<=n;j++){
+            a[i][j]=read();
+        }
+    }
+    ++m;
+    for(int i=1;i<=n;i++) a[m][i]=i;
+    for(int i=1;i<=m;i++){
+        ans=(ans+dp(i))%mod;
+    }
+    int x,y;
+    exgcd(m,mod,x,y);
+    while(x<=0) x+=mod,y-=m;
+    printf("%d\n",ans*x%mod);
+    return 0;
+}
