@@ -1,0 +1,133 @@
+Description
+Mato同学从各路神犇以各种方式（你们懂的）收集了许多资料，这些资料一共有n份，每份有一个大小和一个编号
+。为了防止他人偷拷，这些资料都是加密过的，只能用Mato自己写的程序才能访问。Mato每天随机选一个区间[l,r
+]，他今天就看编号在此区间内的这些资料。Mato有一个习惯，他总是从文件大小从小到大看资料。他先把要看的
+文件按编号顺序依次拷贝出来，再用他写的排序程序给文件大小排序。排序程序可以在1单位时间内交换2个相邻的
+文件（因为加密需要，不能随机访问）。Mato想要使文件交换次数最小，你能告诉他每天需要交换多少次吗？
+Input
+第一行一个正整数n，表示Mato的资料份数。
+第二行由空格隔开的n个正整数，第i个表示编号为i的资料的大小。
+第三行一个正整数q，表示Mato会看几天资料。
+之后q行每行两个正整数l、r，表示Mato这天看[l,r]区间的文件。
+n,q <= 50000
+Output
+q行，每行一个正整数，表示Mato这天需要交换的次数。
+
+Sample Input
+4
+
+1 4 2 3
+
+2
+
+1 2
+
+2 4
+Sample Output
+0
+
+2
+
+//样例解释：第一天，Mato不需要交换
+
+第二天，Mato可以把2号交换2次移到最后。
+
+基本思路:
+分块之后就是树状数组求逆序数的操作，注意下树状数组求逆序数的时候+1-1很容易出错
+
+代码如下：
+#include<bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+#define mod 1000000007
+#define inf 0x3f3f3f3f
+#define maxn 50000+10
+
+int n,m,blk,cnt;
+int blo[maxn],arr[maxn],has[maxn],ans[maxn],c[maxn];
+struct Query{
+    int l,r,id;
+}q[maxn];
+bool operator<(Query a,Query b){
+    if(blo[a.l]==blo[b.l]) return a.r<b.r;
+    else return blo[a.l]<blo[b.l];
+}
+inline int read(){
+    int x=0,f=1;
+    char ch=getchar();
+    while(ch>'9'||ch<'0') {if(ch=='-') f=-1;ch=getchar();}
+    while(ch>='0'&&ch<='9') {x=x*10+ch-'0';ch=getchar();}
+    return x*f;
+}
+int lowbit(int x){
+    return x&(-x);
+}
+void add(int x,int val){
+    while(x<=n){
+        c[x]+=val;
+        x+=lowbit(x);
+    }
+}
+int query(int x){
+    int sum=0;
+    while(x>=1){
+        sum+=c[x];
+        x-=lowbit(x);
+    }
+    return sum;
+}
+void solve(){
+    int l=1,r=0;
+    ll res=0;
+    for(int i=1;i<=m;i++){
+        while(l<q[i].l){
+            add(arr[l],-1);
+            res-=query(arr[l]-1);
+            l++;
+        }
+        while(r>q[i].r){
+            add(arr[r],-1);
+            res-=(r-l-query(arr[r]));
+            r--;
+        }
+        while(l>q[i].l){
+            l--;
+            add(arr[l],1);
+            res+=query(arr[l]-1);
+        }
+        while(r<q[i].r){
+            r++;
+            add(arr[r],1);
+            res+=(r-l+1-query(arr[r]));
+        }
+        ans[q[i].id]=res;
+    }
+}
+int main(){
+    n=read();
+    blk=int(sqrt(n+0.5));
+    for(int i=1;i<=n;i++) blo[i]=(i-1)/blk+1;
+    for(int i=1;i<=n;i++){
+        scanf("%d",&arr[i]);
+        has[i]=arr[i];
+    }
+    sort(has+1,has+n+1);
+    cnt=unique(has+1,has+n+1)-(has+1);
+    for(int i=1;i<=n;i++){
+        arr[i]=lower_bound(has+1,has+cnt+1,arr[i])-has;
+    }
+    m=read();
+    for(int i=1;i<=m;i++){
+        q[i].l=read();
+        q[i].r=read();
+        q[i].id=i;
+    }
+    sort(q+1,q+m+1);
+    solve();
+    for(int i=1;i<=m;i++){
+        printf("%d\n",ans[i]);
+    }
+    return 0;
+}
