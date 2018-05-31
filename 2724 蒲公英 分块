@@ -1,0 +1,88 @@
+Description:
+一道强制在线的区间众数题目，如果出现次数相等，选最小的，然后每次询问之后，询问区间[a,b]中，a=(a+ans-1)%n+1,b=(b+ans-1)%n+1;
+基本思路:
+来自hwzer的思路.
+在线区间众数的分块做法比较多，这里提供一个思路：
+首先离散化一下比较方便。
+最初可能会有一个想法，是不是众数只可能是完整的块的众数，或者不完整的块出现的数呢？显然很容易得出反例。
+应该是完整的所有块的众数，和不完整块中出现的数。
+所以我们可以预处理f(i,j)表示第 i 块到第 j 块的众数（枚举 i 开个桶扫一遍）。
+那么只要能快速得出一个数在某个区间内出现次数即可，每次只要比较至多2√n+1个元素的出现次数，这题就解决了。
+由于没有修改，只要离散化以后，给每个数 x 开个vector，按顺序存下 x 出现的位置，每次询问 x 时把区间的左右端点放进对应 vector 二分一下即可。
+根据均值不等式，可以算出分块大小大概是√(n/logn)
+基本思路:
+#include<bits/stdc++.h>
+
+using namespace std;
+
+#define long long ll
+#define mod 1000000007
+#define inf 0x3f3f3f3f
+#define maxn 50000+10
+
+int n,m,blk;
+int v[maxn],bl[maxn],val[maxn],cnt[maxn];
+int f[500+10][500+10];
+vector<int>vec[maxn];
+map<int,int>mp;
+void pre(int x){
+    memset(cnt,0,sizeof(cnt));
+    int mx=0,ans=0;
+    for(int i=(x-1)*blk+1;i<=n;i++){
+        cnt[v[i]]++;
+        int t=bl[i];
+        if(cnt[v[i]]>mx||(cnt[v[i]]==mx&&val[v[i]]<val[ans])){
+            ans=v[i];mx=cnt[v[i]];
+        }
+        f[x][t]=ans;
+    }
+}
+int query(int l,int r,int x){
+    int t=upper_bound(vec[x].begin(),vec[x].end(),x)-lower_bound(vec[x].begin(),vec[x].end(),x);
+    return t;
+}
+int query(int a,int b){
+    int ans,mx;
+    ans=f[bl[a]+1][bl[b]-1];
+    mx=query(a,b,ans);
+    int up=min(bl[a]*blk,b);
+    for(int i=a;i<=up;i++){
+        int t=query(a,b,v[i]);
+        if(t>mx||(t==mx&&val[v[i]]<val[ans])){
+            ans=v[i];mx=t;
+        }
+    }
+    if(bl[a]!=bl[b]){
+        for(int i=(bl[b]-1)*blk+1;i<=b;i++){
+            int t=query(a,b,v[i]);
+            if(t>mx||(t==mx&&val[v[i]]<val[ans])){
+                ans=v[i];mx=t;
+            }
+        }
+    }
+    return ans;
+}
+int main(){
+    scanf("%d%d",&n,&m);
+    blk=int(sqrt(n+0.5));
+    int ans=0,id=0;
+    for(int i=1;i<=n;i++){
+        scanf("%d",&v[i]);
+        if(!mp[v[i]]){
+            mp[v[i]]=++id;
+            val[id]=v[i];
+        }
+        v[i]=mp[v[i]];
+        vec[v[i]].push_back(i);
+    }
+    for(int i=1;i<=n;i++) bl[i]=(i-1)/blk+1;
+    for(int i=1;i<=bl[n];i++) pre(i);
+    int a,b;
+    for(int i=1;i<=m;i++){
+        scanf("%d%d",&a,&b);
+        a=(a+ans-1)%n+1;b=(b+ans-1)%n+1;
+        ans=val[query(a,b)];
+        printf("%d\n",ans);
+    }
+    return 0;
+}
